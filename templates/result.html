@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>File Upload Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        /* Add a new class for the disabled state of the button */
+        .disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #loadingMessage {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <form id="queryForm">
+        <label for="queryText">Ask a Question:</label>
+        <input type="text" id="queryText" name="queryText" placeholder="Type your question here...">
+        <button type="button" id="askButton" onclick="askQuestion()">Ask</button>
+        <!-- Add the Quit button -->
+        <button type="button" id="quitButton" onclick="quit('{{ file_path }}')">Quit</button>
+
+    </form>
+
+    <div id="loadingMessage">Loading...</div>
+    <div id="responseArea"></div>
+
+    <script>
+        // Introduce a variable to track the last question time
+        var lastQuestionTime = 0;
+
+        function askQuestion() {
+            var currentTime = Date.now();
+            var timeDifference = currentTime - lastQuestionTime;
+
+            // Check if the time difference is greater than 20 seconds
+            if (timeDifference < 20000) {
+                alert("Please wait for at least 20 seconds before asking another question.");
+                return;
+            }
+
+            var queryText = document.getElementById('queryText').value;
+
+            if (queryText.trim() === "") {
+                alert("Please enter a question.");
+                return;
+            }
+
+            // Disable the button during the buffering state
+            var askButton = document.getElementById('askButton');
+            askButton.disabled = true;
+            askButton.classList.add('disabled');
+
+            // Display loading message
+            document.getElementById('loadingMessage').style.display = 'block';
+
+            fetch('/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ queryText: queryText })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading message
+                    document.getElementById('loadingMessage').style.display = 'none';
+
+                    // Display server response
+                    document.getElementById('responseArea').innerHTML = "<p><strong>Server Response:</strong></p><pre>" + data.answer + "</pre>";
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    // Enable the button after the buffering state (20 seconds)
+                    setTimeout(() => {
+                        askButton.disabled = false;
+                        askButton.classList.remove('disabled');
+                        lastQuestionTime = Date.now(); // Update the last question time
+                    }, 20000);
+                });
+        }
+
+        // Add the quit function
+
+    function quit() {
+        // Your quit function code here
+        console.log("Deleting");
+
+        fetch('/delete_file?file_path=' + encodeURIComponent(file_path), {
+            method: 'GET',
+        })
+        .then(response => response.text())
+        .then(data => {
+            // Redirect to the root page after deletion
+            window.location.href = "/";
+        })
+        .catch(error => {
+            console.error('Error deleting file:', error);
+        });
+    }
+
+
+    </script>
+</body>
+
+</html>
